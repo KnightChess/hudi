@@ -118,10 +118,14 @@ public class HoodieTableFactory implements DynamicTableSourceFactory, DynamicTab
     if (!schema.getPrimaryKey().isPresent()) {
       String[] recordKeys = conf.get(FlinkOptions.RECORD_KEY_FIELD).split(",");
       if (recordKeys.length == 1
-          && FlinkOptions.RECORD_KEY_FIELD.defaultValue().equals(recordKeys[0])
-          && !fields.contains(recordKeys[0])) {
-        throw new HoodieValidationException("Primary key definition is required, use either PRIMARY KEY syntax "
-            + "or option '" + FlinkOptions.RECORD_KEY_FIELD.key() + "' to specify.");
+              && FlinkOptions.RECORD_KEY_FIELD.defaultValue().equals(recordKeys[0])) {
+        // set conf with default record key uuid if user does not specify
+        if (!fields.contains(recordKeys[0])) {
+          throw new HoodieValidationException("Primary key definition is required, use either PRIMARY KEY syntax "
+              + "or option '" + FlinkOptions.RECORD_KEY_FIELD.key() + "' to specify.");
+        } else {
+          conf.setString(FlinkOptions.RECORD_KEY_FIELD, recordKeys[0]);
+        }
       }
 
       Arrays.stream(recordKeys)

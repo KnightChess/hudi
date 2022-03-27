@@ -209,6 +209,53 @@ public class TestHoodieTableFactory {
     final Configuration conf3 = tableSource3.getConf();
     assertThat(conf3.get(FlinkOptions.RECORD_KEY_FIELD), is("f0,f1"));
     assertThat(conf3.get(FlinkOptions.KEYGEN_CLASS_NAME), is(NonpartitionedAvroKeyGenerator.class.getName()));
+
+    // definition with schema uuid
+    this.conf.removeConfig(FlinkOptions.RECORD_KEY_FIELD);
+    this.conf.setString(FlinkOptions.KEYGEN_CLASS_NAME, FlinkOptions.KEYGEN_CLASS_NAME.defaultValue());
+    ResolvedSchema schema4 = SchemaBuilder.instance()
+            .field("uuid", DataTypes.INT().notNull())
+            .field("f1", DataTypes.VARCHAR(20).notNull())
+            .field("f2", DataTypes.TIMESTAMP(3))
+            .field("ts", DataTypes.TIMESTAMP(3))
+            .build();
+    final MockContext sourceContext4 = MockContext.getInstance(this.conf, schema4, "f2");
+    final HoodieTableSource tableSource4 = (HoodieTableSource) new HoodieTableFactory().createDynamicTableSource(sourceContext4);
+    final Configuration conf4 = tableSource4.getConf();
+    assertThat(conf4.getString(FlinkOptions.RECORD_KEY_FIELD, null), is("uuid"));
+
+
+    // definition with schema uuid and simple primary keys
+    this.conf.removeConfig(FlinkOptions.RECORD_KEY_FIELD);
+    this.conf.setString(FlinkOptions.KEYGEN_CLASS_NAME, FlinkOptions.KEYGEN_CLASS_NAME.defaultValue());
+    ResolvedSchema schema5 = SchemaBuilder.instance()
+            .field("uuid", DataTypes.INT().notNull())
+            .field("f1", DataTypes.VARCHAR(20).notNull())
+            .field("f2", DataTypes.TIMESTAMP(3))
+            .field("ts", DataTypes.TIMESTAMP(3))
+            .primaryKey("f1")
+            .build();
+    final MockContext sourceContext5 = MockContext.getInstance(this.conf, schema5, "f2");
+    final HoodieTableSource tableSource5 = (HoodieTableSource) new HoodieTableFactory().createDynamicTableSource(sourceContext5);
+    final Configuration conf5 = tableSource5.getConf();
+    assertThat(conf5.getString(FlinkOptions.RECORD_KEY_FIELD, null), is("f1"));
+
+
+    // definition with schema uuid and complex primary keys
+    this.conf.removeConfig(FlinkOptions.RECORD_KEY_FIELD);
+    this.conf.setString(FlinkOptions.KEYGEN_CLASS_NAME, FlinkOptions.KEYGEN_CLASS_NAME.defaultValue());
+    ResolvedSchema schema6 = SchemaBuilder.instance()
+            .field("uuid", DataTypes.INT().notNull())
+            .field("f1", DataTypes.VARCHAR(20).notNull())
+            .field("f2", DataTypes.TIMESTAMP(3))
+            .field("ts", DataTypes.TIMESTAMP(3))
+            .primaryKey("f1", "uuid")
+            .build();
+    final MockContext sourceContext6 = MockContext.getInstance(this.conf, schema6, "f2");
+    final HoodieTableSource tableSource6 = (HoodieTableSource) new HoodieTableFactory().createDynamicTableSource(sourceContext6);
+    final Configuration conf6 = tableSource6.getConf();
+    assertThat(conf6.getString(FlinkOptions.RECORD_KEY_FIELD, null), is("f1,uuid"));
+
   }
 
   @Test
