@@ -2,13 +2,13 @@ name: Java CI
 
 on:
   push:
-    branches:
-      - master
-      - 'release-*'
+    paths-ignore:
+    - 'docker/**'
+    - 'rfc/**'
   pull_request:
-    branches:
-      - master
-      - 'release-*'
+    paths-ignore:
+    - 'docker/**'
+    - 'rfc/**'
 
 jobs:
   build:
