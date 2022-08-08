@@ -37,6 +37,7 @@ import org.apache.spark.sql.hudi.analysis.HoodieV1OrV2Table
 import org.apache.spark.sql.hudi.command._
 import org.apache.spark.sql.hudi.{HoodieSqlCommonUtils, ProvidesHoodieConfig}
 import org.apache.spark.sql.types.{StructField, StructType}
+import org.apache.spark.sql.v2.HoodieV2Table
 import org.apache.spark.sql.{Dataset, SaveMode, SparkSession, _}
 
 import java.net.URI
@@ -107,26 +108,33 @@ class HoodieCatalog extends DelegatingCatalogExtension
             catalogTable0
         }
 
-        val v2Table = HoodieInternalV2Table(
-          spark = spark,
-          path = catalogTable.location.toString,
-          catalogTable = Some(catalogTable),
-          tableIdentifier = Some(ident.toString))
+        val enableV2Table = spark.sessionState.conf.getConfString(DataSourceReadOptions.ENABLE_V2_TABLE.key(),
+          DataSourceReadOptions.ENABLE_V2_TABLE.defaultValue().toString).toBoolean
 
-        val schemaEvolutionEnabled: Boolean = spark.sessionState.conf.getConfString(DataSourceReadOptions.SCHEMA_EVOLUTION_ENABLED.key,
-          DataSourceReadOptions.SCHEMA_EVOLUTION_ENABLED.defaultValue.toString).toBoolean
+        if (!enableV2Table) {
+          val v2Table = HoodieInternalV2Table(
+            spark = spark,
+            path = catalogTable.location.toString,
+            catalogTable = Some(catalogTable),
+            tableIdentifier = Some(ident.toString))
 
-        // NOTE: PLEASE READ CAREFULLY
-        //
-        // Since Hudi relations don't currently implement DS V2 Read API, we by default fallback to V1 here.
-        // Such fallback will have considerable performance impact, therefore it's only performed in cases
-        // where V2 API have to be used. Currently only such use-case is using of Schema Evolution feature
-        //
-        // Check out HUDI-4178 for more details
-        if (schemaEvolutionEnabled) {
-          v2Table
+          val schemaEvolutionEnabled: Boolean = spark.sessionState.conf.getConfString(DataSourceReadOptions.SCHEMA_EVOLUTION_ENABLED.key,
+            DataSourceReadOptions.SCHEMA_EVOLUTION_ENABLED.defaultValue.toString).toBoolean
+
+          // NOTE: PLEASE READ CAREFULLY
+          //
+          // Since Hudi relations don't currently implement DS V2 Read API, we by default fallback to V1 here.
+          // Such fallback will have considerable performance impact, therefore it's only performed in cases
+          // where V2 API have to be used. Currently only such use-case is using of Schema Evolution feature
+          //
+          // Check out HUDI-4178 for more details
+          if (schemaEvolutionEnabled) {
+            v2Table
+          } else {
+            v2Table.v1TableWrapper
+          }
         } else {
-          v2Table.v1TableWrapper
+          HoodieV2Table(spark, catalogTable.location.toString, Some(catalogTable), Some(ident.toString))
         }
 
       case t => t
