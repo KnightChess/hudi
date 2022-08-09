@@ -54,7 +54,9 @@ import scala.util.{Failure, Success, Try}
 case class HoodieScan(sparkSession: SparkSession,
                       table: HoodieCatalogTable,
                       schemaSpec: Option[StructType],
-                      optParams: Map[String, String])
+                      optParams: Map[String, String],
+                      partitionFilters: Seq[Expression],
+                      dataFilters: Seq[Expression])
   extends Scan with Batch with Logging {
 
   def metaClient: HoodieTableMetaClient = table.metaClient
@@ -111,10 +113,10 @@ case class HoodieScan(sparkSession: SparkSession,
       FileStatusCache.getOrCreate(sparkSession))
 
   // todo did diff data schema can use?
-  override def readSchema(): StructType = ???
+  override def readSchema(): StructType = table.tableSchema
 
   override def planInputPartitions(): Array[InputPartition] = {
-    val partitions = listLatestBaseFiles(Seq.empty, Seq.empty, Seq.empty)
+    val partitions = listLatestBaseFiles(Seq.empty, partitionFilters, dataFilters)
     val fileSplits = partitions.values.toSeq
       .flatMap { files =>
         files.flatMap { file =>

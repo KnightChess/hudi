@@ -17,9 +17,13 @@
 
 package org.apache.spark.sql.v2
 
+import org.apache.hudi.HoodieSparkUtils
+import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.catalog.HoodieCatalogTable
-import org.apache.spark.sql.connector.read.{Scan, ScanBuilder}
+import org.apache.spark.sql.catalyst.expressions.{Expression, SubqueryExpression}
+import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, SupportsPushDownFilters}
+import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types.StructType
 
 /**
@@ -27,8 +31,51 @@ import org.apache.spark.sql.types.StructType
 case class HoodieScanBuilder(sparkSession: SparkSession,
                              table: HoodieCatalogTable,
                              schemaSpec: Option[StructType],
-                             optParams: Map[String, String]) extends ScanBuilder {
+                             optParams: Map[String, String]) extends ScanBuilder with SupportsPushDownFilters  with Logging {
+
+  private var filters: Array[Filter] = Array.empty
+
+  private var partitionFilters: Seq[Expression] = _
+
+  private var dataFilters: Seq[Expression] = _
+
   override def build(): Scan = {
-    HoodieScan(sparkSession, table, schemaSpec, optParams)
+    HoodieScan(sparkSession, table, schemaSpec, optParams, partitionFilters, dataFilters)
+  }
+
+  override def pushFilters(filters: Array[Filter]): Array[Filter] = {
+    this.filters = filters
+    val filterExpressions = convertToExpressions(filters)
+    val (partitionFilters, dataFilters) = filterExpressions.partition(isPartitionPredicate)
+    this.partitionFilters = partitionFilters
+    this.dataFilters = dataFilters
+    filters
+  }
+
+  override def pushedFilters(): Array[Filter] = filters
+
+  protected def convertToExpressions(filters: Array[Filter]): Array[Expression] = {
+    // todo sure schema
+    val catalystExpressions = HoodieSparkUtils.convertToCatalystExpressions(filters, table.tableSchema)
+
+    val failedExprs = catalystExpressions.zipWithIndex.filter { case (opt, _) => opt.isEmpty }
+    if (failedExprs.nonEmpty) {
+      val failedFilters = failedExprs.map(p => filters(p._2))
+      logWarning(s"Failed to convert Filters into Catalyst expressions (${failedFilters.map(_.toString)})")
+    }
+
+    catalystExpressions.filter(_.isDefined).map(_.get).toArray
+  }
+
+  /**
+   * Checks whether given expression only references partition columns
+   * (and involves no sub-query)
+   */
+  protected def isPartitionPredicate(condition: Expression): Boolean = {
+    // Validates that the provided names both resolve to the same entity
+    val resolvedNameEquals = sparkSession.sessionState.analyzer.resolver
+
+    condition.references.forall { r => table.partitionFields.exists(resolvedNameEquals(r.name, _)) } &&
+      !SubqueryExpression.hasSubquery(condition)
   }
 }
