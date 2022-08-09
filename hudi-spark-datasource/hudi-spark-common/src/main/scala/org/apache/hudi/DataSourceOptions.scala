@@ -145,6 +145,11 @@ object DataSourceReadOptions {
 
   val SCHEMA_EVOLUTION_ENABLED: ConfigProperty[Boolean] = HoodieCommonConfig.SCHEMA_EVOLUTION_ENABLE
 
+  val ENABLE_V2_TABLE: ConfigProperty[Boolean] = ConfigProperty
+    .key("hoodie.enable.v2.table")
+    .defaultValue(false)
+    .withDocumentation("if true, use spark v2 table source")
+
   /** @deprecated Use {@link QUERY_TYPE} and its methods instead */
   @Deprecated
   val QUERY_TYPE_OPT_KEY = QUERY_TYPE.key()
