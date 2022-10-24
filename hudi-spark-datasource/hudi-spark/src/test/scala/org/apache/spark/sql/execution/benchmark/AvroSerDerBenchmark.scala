@@ -19,6 +19,7 @@
 package org.apache.spark.sql.execution.benchmark
 
 import org.apache.avro.generic.GenericRecord
+import org.apache.hudi.avro.SchemaNormalization
 import org.apache.hudi.{AvroConversionUtils, HoodieSparkUtils}
 import org.apache.spark.hudi.benchmark.{HoodieBenchmark, HoodieBenchmarkBase}
 import org.apache.spark.sql.functions.lit
@@ -56,7 +57,7 @@ object AvroSerDerBenchmark extends HoodieBenchmarkBase {
     benchmark.addCase("serialize internalRow to avro Record") { _ =>
       val df = getDataFrame(50000000)
       val avroSchema = AvroConversionUtils.convertStructTypeToAvroSchema(df.schema, "record", "my")
-      spark.sparkContext.getConf.registerAvroSchemas(avroSchema)
+      spark.sparkContext.getConf.set("avro.schema." + SchemaNormalization.parsingFingerprint64(avroSchema), avroSchema.toString())
       HoodieSparkUtils.createRdd(df,"record", "my", Some(avroSchema)).foreach(f => f)
     }
     benchmark.run()
@@ -77,7 +78,7 @@ object AvroSerDerBenchmark extends HoodieBenchmarkBase {
     val testRdd = HoodieSparkUtils.createRdd(df,"record", "my", Some(avroSchema))
     testRdd.cache()
     testRdd.foreach(f => f)
-    spark.sparkContext.getConf.registerAvroSchemas(avroSchema)
+    spark.sparkContext.getConf.set("avro.schema." + SchemaNormalization.parsingFingerprint64(avroSchema), avroSchema.toString())
     benchmark.addCase("deserialize avro Record to internalRow") { _ =>
       testRdd.mapPartitions { iter =>
         val schema = AvroConversionUtils.convertStructTypeToAvroSchema(sparkSchema, "record", "my")

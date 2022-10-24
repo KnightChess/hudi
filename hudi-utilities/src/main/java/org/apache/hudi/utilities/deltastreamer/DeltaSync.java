@@ -22,6 +22,7 @@ import org.apache.hudi.DataSourceUtils;
 import org.apache.hudi.DataSourceWriteOptions;
 import org.apache.hudi.HoodieSparkUtils;
 import org.apache.hudi.avro.HoodieAvroUtils;
+import org.apache.hudi.avro.SchemaNormalization;
 import org.apache.hudi.client.SparkRDDWriteClient;
 import org.apache.hudi.client.WriteStatus;
 import org.apache.hudi.client.common.HoodieSparkEngineContext;
@@ -220,6 +221,8 @@ public class DeltaSync implements Serializable, Closeable {
   private transient HoodieDeltaStreamerMetrics metrics;
 
   private transient HoodieMetrics hoodieMetrics;
+
+  private final String avroNamespace = "avro.schema.";
 
   public DeltaSync(HoodieDeltaStreamer.Config cfg, SparkSession sparkSession, SchemaProvider schemaProvider,
                    TypedProperties props, JavaSparkContext jssc, FileSystem fs, Configuration conf,
@@ -890,7 +893,10 @@ public class DeltaSync implements Serializable, Closeable {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Registering Schema: " + schemas);
       }
-      jssc.sc().getConf().registerAvroSchemas(JavaConversions.asScalaBuffer(schemas).toList());
+      for (Schema schema :
+          schemas) {
+        jssc.sc().getConf().set(avroNamespace + SchemaNormalization.parsingFingerprint64(schema), schema.toString());
+      }
     }
   }
 

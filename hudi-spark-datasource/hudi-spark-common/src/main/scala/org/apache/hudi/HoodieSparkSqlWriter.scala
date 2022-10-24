@@ -24,7 +24,7 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hudi.DataSourceWriteOptions._
 import org.apache.hudi.HoodieConversionUtils.{toProperties, toScalaOption}
 import org.apache.hudi.HoodieWriterUtils._
-import org.apache.hudi.avro.HoodieAvroUtils
+import org.apache.hudi.avro.{HoodieAvroUtils, SchemaNormalization}
 import org.apache.hudi.client.{HoodieWriteResult, SparkRDDWriteClient}
 import org.apache.hudi.common.config.{HoodieCommonConfig, HoodieConfig, HoodieMetadataConfig, TypedProperties}
 import org.apache.hudi.common.fs.FSUtils
@@ -66,6 +66,7 @@ object HoodieSparkSqlWriter {
   private var tableExists: Boolean = false
   private var asyncCompactionTriggerFnDefined: Boolean = false
   private var asyncClusteringTriggerFnDefined: Boolean = false
+  private final val avroNamespace = "avro.schema."
 
   def write(sqlContext: SQLContext,
             mode: SaveMode,
@@ -279,7 +280,7 @@ object HoodieSparkSqlWriter {
               }
 
             validateSchemaForHoodieIsDeleted(writerSchema)
-            sparkContext.getConf.registerAvroSchemas(writerSchema)
+            sparkContext.getConf.set(avroNamespace + SchemaNormalization.parsingFingerprint64(writerSchema), writerSchema.toString())
             log.info(s"Registered avro schema : ${writerSchema.toString(true)}")
 
             // Convert to RDD[HoodieRecord]
@@ -550,7 +551,7 @@ object HoodieSparkSqlWriter {
       schema = generateSchemaWithoutPartitionColumns(partitionColumns, schema)
     }
     validateSchemaForHoodieIsDeleted(schema)
-    sparkContext.getConf.registerAvroSchemas(schema)
+    sparkContext.getConf.set(avroNamespace + SchemaNormalization.parsingFingerprint64(schema), schema.toString())
     log.info(s"Registered avro schema : ${schema.toString(true)}")
     if (parameters(INSERT_DROP_DUPS.key).toBoolean) {
       throw new HoodieException("Dropping duplicates with bulk_insert in row writer path is not supported yet")
