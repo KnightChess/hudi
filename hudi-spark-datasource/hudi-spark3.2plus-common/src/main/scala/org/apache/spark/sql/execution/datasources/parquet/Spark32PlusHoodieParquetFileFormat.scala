@@ -25,7 +25,7 @@ import org.apache.hudi.common.util.collection.Pair
 import org.apache.hudi.internal.schema.InternalSchema
 import org.apache.hudi.internal.schema.Types.Field
 import org.apache.hudi.internal.schema.utils.{InternalSchemaUtils, SerDeHelper}
-import org.apache.hudi.secondary.index.{HoodieSecondaryIndex, ISecondaryIndexReader, SecondaryIndexType}
+import org.apache.hudi.secondary.index.{HoodieSecondaryIndex, ISecondaryIndexBase, ISecondaryIndexReader, SecondaryIndexType}
 import org.apache.hudi.secondary.index.filter.{AllRowFilter, AndFilter, EmptyRowFilter, IndexFilter, NotFilter, NotNullFilter, NullFilter, OrFilter, PrefixFilter, RangeFilter, RegexFilter, TermFilter, TermListFilter}
 import org.apache.spark.sql.sources.{AlwaysFalse, AlwaysTrue, And, EqualNullSafe, EqualTo, Filter, GreaterThan, GreaterThanOrEqual, In, IsNotNull, IsNull, LessThan, LessThanOrEqual, Not, Or, StringContains, StringEndsWith, StringStartsWith}
 import org.apache.spark.sql.types.StructType
@@ -156,7 +156,7 @@ object Spark32PlusHoodieParquetFileFormat {
       validIndex: Seq[HoodieSecondaryIndex],
       fileName: String,
       indexFolder: String,
-      indexReaders: Map[Pair[String, SecondaryIndexType], ISecondaryIndexReader]): (Seq[IndexFilter], Seq[Filter]) = {
+      indexReaders: Map[Pair[String, SecondaryIndexType], ISecondaryIndexBase]): (Seq[IndexFilter], Seq[Filter]) = {
 
     var indexFilters: Seq[IndexFilter] = Seq.empty
     var newFilters: Seq[Filter] = Seq.empty
@@ -193,7 +193,7 @@ object Spark32PlusHoodieParquetFileFormat {
       validIndex: Seq[HoodieSecondaryIndex],
       fileName: String,
       indexFolder: String,
-      indexReaders: Map[Pair[String, SecondaryIndexType], ISecondaryIndexReader]): Option[IndexFilter] = {
+      indexReaders: Map[Pair[String, SecondaryIndexType], ISecondaryIndexBase]): Option[IndexFilter] = {
     filter match {
       case eq: EqualTo if canUseIndex(eq.attribute, indexMeta, validIndex) =>
         rebuildHudiField(eq.attribute, fields)
@@ -313,7 +313,7 @@ object Spark32PlusHoodieParquetFileFormat {
       indexMeta: Seq[HoodieSecondaryIndex],
       fileName: String,
       indexFolder: String,
-      indexReaders: Map[Pair[String, SecondaryIndexType], ISecondaryIndexReader]): ISecondaryIndexReader = {
+      indexReaders: Map[Pair[String, SecondaryIndexType], ISecondaryIndexBase]): ISecondaryIndexBase = {
     indexMeta.find(index => index.getColumns.keySet().contains(fieldName))
         .map(index => {
           val indexSavePath = BuildUtils.getIndexSaveDir(indexFolder, index.getIndexType.name(), fileName)

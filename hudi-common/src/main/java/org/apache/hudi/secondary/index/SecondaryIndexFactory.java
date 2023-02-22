@@ -21,6 +21,8 @@ package org.apache.hudi.secondary.index;
 
 import org.apache.hudi.common.config.HoodieBuildTaskConfig;
 import org.apache.hudi.exception.HoodieSecondaryIndexException;
+import org.apache.hudi.secondary.index.bloom.BloomIndexBuilder;
+import org.apache.hudi.secondary.index.bloom.BloomIndexReader;
 import org.apache.hudi.secondary.index.lucene.LuceneIndexBuilder;
 import org.apache.hudi.secondary.index.lucene.LuceneIndexReader;
 
@@ -31,6 +33,8 @@ public class SecondaryIndexFactory {
     switch (indexConfig.getIndexType()) {
       case LUCENE:
         return new LuceneIndexBuilder(indexConfig);
+      case BLOOM:
+        return new BloomIndexBuilder(indexConfig);
       default:
         throw new HoodieSecondaryIndexException(
             "Unknown hoodie secondary index type: " + indexConfig.getIndexType());
@@ -42,6 +46,17 @@ public class SecondaryIndexFactory {
     switch (indexType) {
       case LUCENE:
         return new LuceneIndexReader(indexDir, conf);
+      default:
+        throw new HoodieSecondaryIndexException(
+            "Unknown hoodie secondary index type:" + indexType);
+    }
+  }
+
+  public static BloomIndexReader getBloomIndexReader(
+      String indexDir, SecondaryIndexType indexType, Configuration conf) {
+    switch (indexType) {
+      case BLOOM:
+        return new BloomIndexReader(indexDir, conf);
       default:
         throw new HoodieSecondaryIndexException(
             "Unknown hoodie secondary index type:" + indexType);

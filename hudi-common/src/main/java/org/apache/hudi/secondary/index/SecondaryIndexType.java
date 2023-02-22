@@ -24,7 +24,8 @@ import org.apache.hudi.exception.HoodieIndexException;
 import java.util.Arrays;
 
 public enum SecondaryIndexType {
-  LUCENE((byte) 1);
+  LUCENE((byte) 1),
+  BLOOM((byte) 2);
 
   private final byte type;
 
