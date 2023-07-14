@@ -25,6 +25,7 @@ import org.apache.hudi.common.util.Option;
 import java.io.Serializable;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 
@@ -133,7 +134,7 @@ public class HoodieFileGroup implements Serializable {
    * Get all the file slices including in-flight ones as seen in underlying file system.
    */
   public Stream<FileSlice> getAllFileSlicesIncludingInflight() {
-    return fileSlices.values().stream();
+    return fileSlices.entrySet().stream().map(Map.Entry::getValue);
   }
 
   /**
@@ -148,7 +149,7 @@ public class HoodieFileGroup implements Serializable {
    */
   public Stream<FileSlice> getAllFileSlices() {
     if (!timeline.empty()) {
-      return fileSlices.values().stream().filter(this::isFileSliceCommitted);
+      return fileSlices.entrySet().stream().map(Map.Entry::getValue).filter(this::isFileSliceCommitted);
     }
     return Stream.empty();
   }
@@ -185,7 +186,7 @@ public class HoodieFileGroup implements Serializable {
    * Obtain the latest file slice, upto an instantTime i.e < maxInstantTime.
    * 
    * @param maxInstantTime Max Instant Time
-   * @return the latest file slice
+   * @return
    */
   public Option<FileSlice> getLatestFileSliceBefore(String maxInstantTime) {
     return Option.fromJavaOptional(getAllFileSlices().filter(
