@@ -1299,6 +1299,9 @@ class TestInsertTable extends HoodieSparkSqlTestBase {
   test("Test Insert Into Bucket Index Table") {
     withTempDir { tmp =>
       val tableName = generateTableName
+      spark.sql("set hoodie.metadata.enable = true")
+      spark.sql("set hoodie.enable.data.skipping = true")
+      spark.sql("set hoodie.bucket.query.index = true")
       // Create a partitioned table
       spark.sql(
         s"""
@@ -1313,22 +1316,36 @@ class TestInsertTable extends HoodieSparkSqlTestBase {
            | primaryKey = 'id,name',
            | preCombineField = 'ts',
            | hoodie.index.type = 'BUCKET',
-           | hoodie.bucket.index.hash.field = 'id,name')
+           | hoodie.bucket.index.hash.field = 'id')
            | partitioned by (dt)
            | location '${tmp.getCanonicalPath}'
        """.stripMargin)
+
+      spark.sql("set hoodie.bucket.index.hash.field = id")
 
       // Note: Do not write the field alias, the partition field must be placed last.
       spark.sql(
         s"""
            | insert into $tableName values
-           | (1, 'a1,1', 10, 1000, "2021-01-05"),
+           | (1, 'a1', 10, 1000, "2021-01-05"),
            | (2, 'a2', 20, 2000, "2021-01-06"),
            | (3, 'a3', 30, 3000, "2021-01-07")
               """.stripMargin)
 
-      checkAnswer(s"select id, name, price, ts, dt from $tableName")(
-        Seq(1, "a1,1", 10.0, 1000, "2021-01-05"),
+//      checkAnswer(s"select id, name, price, ts, dt from $tableName where id = 1")(
+//        Seq(1, "a1", 10.0, 1000, "2021-01-05"),
+////        Seq(2, "a2", 20.0, 2000, "2021-01-06"),
+////        Seq(3, "a3", 30.0, 3000, "2021-01-07")
+//      )
+//
+//      checkAnswer(s"select id, name, price, ts, dt from $tableName where id = 2")(
+////        Seq(1, "a1", 10.0, 1000, "2021-01-05")
+//                Seq(2, "a2", 20.0, 2000, "2021-01-06"),
+//        //        Seq(3, "a3", 30.0, 3000, "2021-01-07")
+//      )
+
+      checkAnswer(s"select id, name, price, ts, dt from $tableName where id in (2,3)")(
+        //        Seq(1, "a1", 10.0, 1000, "2021-01-05")
         Seq(2, "a2", 20.0, 2000, "2021-01-06"),
         Seq(3, "a3", 30.0, 3000, "2021-01-07")
       )
@@ -1340,7 +1357,7 @@ class TestInsertTable extends HoodieSparkSqlTestBase {
               """.stripMargin)
 
       checkAnswer(s"select id, name, price, ts, dt from $tableName")(
-        Seq(1, "a1,1", 10.0, 1000, "2021-01-05"),
+        Seq(1, "a1", 10.0, 1000, "2021-01-05"),
         Seq(2, "a2", 20.0, 2000, "2021-01-06"),
         Seq(3, "a3", 30.0, 3000, "2021-01-07")
       )

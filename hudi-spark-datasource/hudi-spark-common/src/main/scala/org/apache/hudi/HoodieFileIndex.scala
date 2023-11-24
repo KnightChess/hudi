@@ -109,6 +109,8 @@ case class HoodieFileIndex(spark: SparkSession,
    */
   @transient private lazy val functionalIndex = new FunctionalIndexSupport(spark, metadataConfig, metaClient)
 
+  @transient private lazy val bucketIndex = new BucketIndexSupport(spark, metadataConfig, metaClient)
+
   override def rootPaths: Seq[Path] = getQueryPaths.asScala
 
   /**
@@ -346,6 +348,9 @@ case class HoodieFileIndex(spark: SparkSession,
       val shouldReadInMemory = functionalIndex.shouldReadInMemory(this, queryReferencedColumns)
       val indexDf = functionalIndex.loadFunctionalIndexDataFrame("", shouldReadInMemory)
       Some(getCandidateFiles(indexDf, queryFilters))
+    } else if (bucketIndex.isIndexAvailable) {
+      val (_, bucketIds) = bucketIndex.filterQueriesWithBucketHashField(queryFilters)
+      Option.apply(bucketIndex.getCandidateFiles(getAllFiles(), bucketIds))
     } else if (!columnStatsIndex.isIndexAvailable || queryFilters.isEmpty || queryReferencedColumns.isEmpty) {
       validateConfig()
       Option.empty
