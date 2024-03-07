@@ -43,6 +43,7 @@ import org.apache.spark.api.java.function.PairFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -380,10 +381,12 @@ public class UpsertPartitioner<T> extends SparkHoodiePartitioner<T> {
         Iterator<HoodieInstant> instants = commitTimeline.getReverseOrderedInstants().iterator();
         while (instants.hasNext()) {
           HoodieInstant instant = instants.next();
-          HoodieCommitMetadata commitMetadata = HoodieCommitMetadata
-              .fromBytes(commitTimeline.getInstantDetails(instant).get(), HoodieCommitMetadata.class);
-          long totalBytesWritten = commitMetadata.fetchTotalBytesWritten();
-          long totalRecordsWritten = commitMetadata.fetchTotalRecordsWritten();
+          Option<HoodieCommitMetadata> commitMetadata = getCommitMetadata(commitTimeline, instant);
+          if (commitMetadata.isEmpty()) {
+            continue;
+          }
+          long totalBytesWritten = commitMetadata.get().fetchTotalBytesWritten();
+          long totalRecordsWritten = commitMetadata.get().fetchTotalRecordsWritten();
           if (totalBytesWritten > fileSizeThreshold && totalRecordsWritten > 0) {
             avgSize = (long) Math.ceil((1.0 * totalBytesWritten) / totalRecordsWritten);
             break;
@@ -395,5 +398,18 @@ public class UpsertPartitioner<T> extends SparkHoodiePartitioner<T> {
       LOG.error("Error trying to compute average bytes/record ", t);
     }
     return avgSize;
+  }
+
+  private static Option<HoodieCommitMetadata> getCommitMetadata(HoodieTimeline commitTimeline, HoodieInstant instant) {
+    try {
+      byte[] data = commitTimeline.getInstantDetails(instant).get();
+      return Option.of(HoodieCommitMetadata.fromBytes(data, HoodieCommitMetadata.class));
+    } catch (FileNotFoundException e) {
+      LOG.warn("Instant {} is archived by archiver", instant.getTimestamp(), e);
+      return Option.empty();
+    } catch (Throwable throwable) {
+      LOG.error("get instant {} commit metadata error", instant, throwable);
+      return Option.empty();
+    }
   }
 }
