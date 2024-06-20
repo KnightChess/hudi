@@ -397,6 +397,7 @@ object LogFileIterator extends SparkAdapterSupport {
         .withBitCaskDiskMapCompressionEnabled(
           hadoopConf.getBoolean(HoodieCommonConfig.DISK_MAP_BITCASK_COMPRESSION_ENABLED.key(),
             HoodieCommonConfig.DISK_MAP_BITCASK_COMPRESSION_ENABLED.defaultValue()))
+        .withOptimizedLogBlocksScan(true)
 
       if (logFiles.nonEmpty) {
         logRecordScannerBuilder.withPartition(getRelativePartitionPath(

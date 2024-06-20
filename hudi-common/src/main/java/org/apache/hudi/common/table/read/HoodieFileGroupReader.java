@@ -21,6 +21,7 @@ package org.apache.hudi.common.table.read;
 
 import org.apache.hudi.common.config.HoodieCommonConfig;
 import org.apache.hudi.common.config.HoodieMemoryConfig;
+import org.apache.hudi.common.config.HoodieReaderConfig;
 import org.apache.hudi.common.config.RecordMergeMode;
 import org.apache.hudi.common.config.TypedProperties;
 import org.apache.hudi.common.engine.HoodieReaderContext;
@@ -52,6 +53,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static org.apache.hudi.common.fs.FSUtils.getRelativePartitionPath;
+import static org.apache.hudi.common.util.ConfigUtils.getBooleanWithAltKeys;
 import static org.apache.hudi.common.util.ConfigUtils.getIntWithAltKeys;
 import static org.apache.hudi.common.util.ConfigUtils.getStringWithAltKeys;
 
@@ -226,6 +228,7 @@ public final class HoodieFileGroupReader<T> implements Closeable {
         .withRecordMerger(recordMerger)
         .withRecordMergeMode(recordMergeMode)
         .withRecordBuffer(recordBuffer)
+        .withOptimizedLogBlocksScan(getBooleanWithAltKeys(props, HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN))
         .build();
     logRecordReader.close();
   }
