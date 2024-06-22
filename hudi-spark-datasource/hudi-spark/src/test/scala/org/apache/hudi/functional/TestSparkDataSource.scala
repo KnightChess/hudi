@@ -90,8 +90,8 @@ class TestSparkDataSource extends SparkClientFunctionalTestHarness {
     // Snapshot query
     val snapshotDf1 = spark.read.format("org.apache.hudi")
       .option(HoodieMetadataConfig.ENABLE.key, isMetadataEnabledOnRead)
-      .option(HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN.key(), "false")
-      .option("hoodie.file.group.reader.enabled", "true")
+      .option(HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN.key(), "true")
+      .option("hoodie.file.group.reader.enabled", "false")
       .load(basePath).cache
     assertEquals(10, snapshotDf1.count())
     compareEntireInputDfWithHudiDf(inputDf0, snapshotDf1, colsToSelect)
@@ -108,8 +108,8 @@ class TestSparkDataSource extends SparkClientFunctionalTestHarness {
 
     val snapshotDf2 = spark.read.format("org.apache.hudi")
       .option(HoodieMetadataConfig.ENABLE.key, isMetadataEnabledOnRead)
-      .option(HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN.key(), "false")
-      .option("hoodie.file.group.reader.enabled", "true")
+      .option(HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN.key(), "true")
+      .option("hoodie.file.group.reader.enabled", "false")
       .load(basePath).cache
     assertEquals(10, snapshotDf2.count())
     compareUpdateDfWithHudiDf(updateDf, snapshotDf2, snapshotRows1, colsToSelect)
@@ -130,8 +130,8 @@ class TestSparkDataSource extends SparkClientFunctionalTestHarness {
     // Snapshot Query
     val snapshotDf3 = spark.read.format("org.apache.hudi")
       .option(HoodieMetadataConfig.ENABLE.key, isMetadataEnabledOnRead)
-      .option(HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN.key(), "false")
-      .option("hoodie.file.group.reader.enabled", "true")
+      .option(HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN.key(), "true")
+      .option("hoodie.file.group.reader.enabled", "false")
       .load(basePath).cache
     assertEquals(10, snapshotDf3.count(), "should still be 10, since we only updated")
     compareUpdateDfWithHudiDf(inputDf2, snapshotDf3, snapshotRows2, colsToSelect)
@@ -145,8 +145,8 @@ class TestSparkDataSource extends SparkClientFunctionalTestHarness {
       .option(DataSourceReadOptions.BEGIN_INSTANTTIME.key, "000")
       .option(DataSourceReadOptions.END_INSTANTTIME.key, firstCommit)
       .option(HoodieMetadataConfig.ENABLE.key, isMetadataEnabledOnRead)
-      .option(HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN.key(), "false")
-      .option("hoodie.file.group.reader.enabled", "true")
+      .option(HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN.key(), "true")
+      .option("hoodie.file.group.reader.enabled", "false")
       .load(basePath)
     assertEquals(10, hoodieIncViewDf1.count(), "should have pulled 10 initial inserts")
     var countsPerCommit = hoodieIncViewDf1.groupBy("_hoodie_commit_time").count().collect()
@@ -166,8 +166,8 @@ class TestSparkDataSource extends SparkClientFunctionalTestHarness {
       .option(DataSourceReadOptions.BEGIN_INSTANTTIME.key, commitInstantTime2)
       .option(DataSourceReadOptions.END_INSTANTTIME.key(), commitInstantTime3)
       .option(HoodieMetadataConfig.ENABLE.key, isMetadataEnabledOnRead)
-      .option(HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN.key(), "false")
-      .option("hoodie.file.group.reader.enabled", "true")
+      .option(HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN.key(), "true")
+      .option("hoodie.file.group.reader.enabled", "false")
       .load(basePath)
 
     assertEquals(uniqueKeyCnt2, hoodieIncViewDf2.count(), "should have pulled 6 records")
@@ -178,8 +178,8 @@ class TestSparkDataSource extends SparkClientFunctionalTestHarness {
     // time travel query.
     val timeTravelDf = spark.read.format("org.apache.hudi")
       .option("as.of.instant", commitInstantTime2)
-      .option(HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN.key(), "false")
-      .option("hoodie.file.group.reader.enabled", "true")
+      .option(HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN.key(), "true")
+      .option("hoodie.file.group.reader.enabled", "false")
       .load(basePath).cache
     assertEquals(10, timeTravelDf.count())
     compareEntireInputRowsWithHudiDf(snapshotRows2, timeTravelDf, colsToSelect)
@@ -190,8 +190,8 @@ class TestSparkDataSource extends SparkClientFunctionalTestHarness {
 
       val snapshotRows4 = spark.read.format("org.apache.hudi")
         .option(HoodieMetadataConfig.ENABLE.key, isMetadataEnabledOnRead)
-        .option(HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN.key(), "false")
-        .option("hoodie.file.group.reader.enabled", "true")
+        .option(HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN.key(), "true")
+        .option("hoodie.file.group.reader.enabled", "false")
         .load(basePath).collect.toList
       assertEquals(10, snapshotRows4.length)
 
@@ -207,8 +207,8 @@ class TestSparkDataSource extends SparkClientFunctionalTestHarness {
 
       val snapshotDf5 = spark.read.format("org.apache.hudi")
         .option(HoodieMetadataConfig.ENABLE.key, isMetadataEnabledOnRead)
-        .option(HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN.key(), "false")
-        .option("hoodie.file.group.reader.enabled", "true")
+        .option(HoodieReaderConfig.ENABLE_OPTIMIZED_LOG_BLOCKS_SCAN.key(), "true")
+        .option("hoodie.file.group.reader.enabled", "false")
         .load(basePath).cache
 
       compareUpdateDfWithHudiDf(inputDf4, snapshotDf5, snapshotRows4, colsToSelect)
